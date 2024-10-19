@@ -13,13 +13,25 @@ pub trait ICounter<T> {
 
 #[starknet::contract]
 pub mod Counter {
-    use super::ContractAddress;
+    use starknet::event::EventEmitter;
+use super::ContractAddress;
     use starknet::{get_caller_address};
 
     #[storage]
     struct Storage {
         count: u64,
         admin: ContractAddress
+    }
+
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    pub enum Event {
+        NewCountSet: NewCountSet
+    }
+
+    #[derive(Drop, starknet::Event)]
+    pub struct NewCountSet{
+        pub count: u64
     }
 
     #[constructor]
@@ -35,8 +47,10 @@ pub mod Counter {
 
             assert(caller == admin, 'caller not admin');
             assert(value > 0, 'zero value');
+            let new_score: u64 = self.count.read() + value;
+            self.count.write(new_score);
 
-            self.count.write(self.count.read() + value);
+            self.emit(NewCountSet{count: new_score});
         }
 
         fn get_count(self: @ContractState) -> u64 {
